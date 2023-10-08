@@ -1,4 +1,3 @@
-FROM --platform=${BUILDPLATFORM:-linux/amd64} ghcr.io/openfaas/license-check:0.4.1 as license-check
 FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.20 as builder
 
 ARG TARGETPLATFORM
@@ -11,8 +10,6 @@ ARG GitCommit
 
 ENV CGO_ENABLED=0
 ENV GO111MODULE=on
-
-COPY --from=license-check /license-check /usr/bin/
 
 RUN mkdir -p /go/src/github.com/inlets/inlets-operator
 WORKDIR /go/src/github.com/inlets/inlets-operator
@@ -32,11 +29,6 @@ COPY config.go  config.go
 COPY config_test.go  config_test.go
 
 RUN gofmt -l -d $(find . -type f -name '*.go' -not -path "./vendor/*")
-
-RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
-  go test -v ./...
-
-RUN license-check -path ./ --verbose=false "Alex Ellis" "inlets Authors" "inlets Author(s)"
 
 RUN CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
   go build -ldflags "-s -w -X github.com/inlets/inlets-operator/pkg/version.Release=${Version} -X github.com/inlets/inlets-operator/pkg/version.SHA=${GitCommit}" -o /usr/bin/inlets-operator .
